@@ -239,3 +239,40 @@ create policy "Authenticated users submit reports" on public.reports for insert 
 
 -- Audit events are readable only through a future safe public projection.
 -- Direct client writes are intentionally not allowed.
+
+
+-- Add each project owner to the membership table at creation time.
+create or replace function public.add_project_owner_membership()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  insert into public.project_members (project_id, user_id, role)
+  values (new.id, new.owner_id, 'owner')
+  on conflict (project_id, user_id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_project_created_add_owner on public.projects;
+create trigger on_project_created_add_owner
+  after insert on public.projects
+  for each row execute procedure public.add_project_owner_membership();
+
+-- Members may join public projects as contributors; maintainers remain owner-managed.
+create policy "Authenticated users join public projects"
+on public.project_members for insert to authenticated
+with check (
+  user_id = auth.uid()
+  and role = 'contributor'
+  and exists (
+    select 1 from public.projects p
+    where p.id = project_id and p.visibility = 'public'
+  )
+);
+
+create policy "Members leave projects"
+on public.project_members for delete to authenticated
+using (user_id = auth.uid() and role = 'contributor');
