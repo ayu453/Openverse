@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, ArrowUpRight, Users, Target, Clock3 } from "lucide-react";
+import { ArrowLeft, Users, Target } from "lucide-react";
 
 const projects = [
   { name: "Neighbourhood Air Watch", field: "Climate · Open data", stage: "Research", people: 4, description: "Explore an affordable, community-led way to understand local air quality and make the data easier to use." },
